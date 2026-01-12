@@ -1,0 +1,12 @@
+[project]
+name = "ocelog"
+version = "0.1.0"
+description = "A lightweight buffered logger with exit flush support"
+requires-python = ">=3.8"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
