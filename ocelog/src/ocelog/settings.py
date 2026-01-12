@@ -1,7 +1,10 @@
+"""Settings and environment parsing for ocelog."""
+
 import os
 
 
 def _parse_bool(value):
+    """Parse a boolean from environment-like values."""
     if isinstance(value, bool):
         return value
     if value is None:
@@ -15,14 +18,16 @@ def _parse_bool(value):
 
 
 def _parse_db_error_mode(value):
+    """Parse db error mode from string values."""
     text = str(value).strip().lower()
     if text in ("silent", "raise", "stderr"):
         return text
     raise ValueError(f"invalid db_error_mode: {value!r}")
 
 
-class OcelogSettings:
-    def __init__(
+class OcelogSettings:  # pylint: disable=too-many-instance-attributes
+    """Configuration container for ocelog."""
+    def __init__(  # pylint: disable=too-many-arguments,too-many-positional-arguments
         self,
         logfile="ocelog.jsonl",
         name="ocelog",
@@ -50,10 +55,11 @@ class OcelogSettings:
 
     @classmethod
     def from_env(cls):
+        """Load settings from environment variables."""
         return cls.from_env_with_defaults()
 
     @classmethod
-    def from_env_with_defaults(
+    def from_env_with_defaults(  # pylint: disable=too-many-arguments,too-many-positional-arguments
         cls,
         logfile="ocelog.jsonl",
         name="ocelog",
@@ -67,6 +73,7 @@ class OcelogSettings:
         db_error_mode="silent",
         strict=False,
     ):
+        """Load settings from env, falling back to supplied defaults."""
         strict_env = os.getenv("OCELOG_STRICT_ENV")
         if strict_env is not None and strict_env != "":
             try:
@@ -82,7 +89,7 @@ class OcelogSettings:
                 return default
             try:
                 return cast(val)
-            except Exception as exc:
+            except Exception as exc:  # pylint: disable=broad-exception-caught
                 if strict:
                     raise ValueError(f"invalid value for {name}: {val!r}") from exc
                 return default

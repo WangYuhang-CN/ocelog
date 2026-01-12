@@ -1,37 +1,22 @@
+"""FastAPI integration for ocelog."""
+
 from ..context import get_trace_id, set_trace_id
-from ..core import Ocelogger
-from ..lazy import LazyLogger
-from ..lifecycle import register_exit_hooks
-from ..settings import OcelogSettings
 from .common import pick_trace_id, require_dependency
+from . import logger as _web_logger
 
 require_dependency("fastapi", "FastAPI")
 
-
-def _build_logger():
-    settings = OcelogSettings.from_env_with_defaults(
-        name="ocelog.web",
-        flush_interval=0.5,
-        max_buffer=300,
-        enable_signals=False,
-    )
-    instance = Ocelogger(settings=settings)
-    register_exit_hooks(
-        instance,
-        enable_signals=settings.enable_signals,
-        enable_atexit=settings.enable_atexit,
-    )
-    return instance
+logger = _web_logger
 
 
-logger = LazyLogger(_build_logger)
-
-
-class FastAPIMiddleware:
+class FastAPIMiddleware:  # pylint: disable=too-few-public-methods
+    """Attach trace IDs for FastAPI requests."""
     def __init__(self, app):
+        """Store the ASGI app."""
         self.app = app
 
     async def __call__(self, scope, receive, send):
+        """ASGI middleware entry point."""
         if scope.get("type") != "http":
             return await self.app(scope, receive, send)
 

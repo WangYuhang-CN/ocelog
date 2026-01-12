@@ -1,18 +1,21 @@
+"""Process lifecycle hooks for flushing logs."""
+
 import atexit
 import signal
 import sys
 
 def register_exit_hooks(logger, enable_signals=True, enable_atexit=True):
+    """Register process-exit hooks for a logger."""
     def _cleanup():
         try:
             if hasattr(logger, "close"):
                 logger.close()
             else:
                 logger.flush()
-        except Exception:
+        except Exception:  # pylint: disable=broad-exception-caught
             pass
 
-    def _handle_signal(signum, frame):
+    def _handle_signal(_signum, _frame):
         _cleanup()
         sys.exit(0)
 

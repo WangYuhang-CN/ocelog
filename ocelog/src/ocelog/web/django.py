@@ -1,16 +1,20 @@
-from ..context import get_trace_id, set_trace_id
-from ..core import Ocelogger
-from ..lazy import LazyLogger
-from ..lifecycle import register_exit_hooks
-from ..settings import OcelogSettings
-from .common import pick_trace_id, require_dependency
+"""Django integration for ocelog."""
 
-require_dependency("django", "Django")
+try:
+    from django.conf import settings as django_settings  # pylint: disable=import-error
+except Exception as exc:
+    raise ImportError(
+        "Django support requires 'django'. Install it to use this module."
+    ) from exc
+
+from ..context import get_trace_id, set_trace_id
+from ..lazy import LazyLogger
+from ..bootstrap import build_logger
+from .common import pick_trace_id, build_web_settings
 
 
 def _load_django_settings():
-    from django.conf import settings as django_settings
-
+    """Load Django settings overrides if configured."""
     config = None
     db_writer = None
     if getattr(django_settings, "configured", False):
@@ -20,21 +24,14 @@ def _load_django_settings():
 
 
 def _build_settings():
-    settings = OcelogSettings.from_env_with_defaults(
-        name="ocelog.web",
-        flush_interval=0.5,
-        max_buffer=300,
-        enable_signals=False,
-    )
+    """Build settings with Django overrides."""
     config, _ = _load_django_settings()
-    if isinstance(config, dict):
-        for key, value in config.items():
-            if hasattr(settings, key):
-                setattr(settings, key, value)
-    return settings
+    overrides = config if isinstance(config, dict) else None
+    return build_web_settings(overrides=overrides)
 
 
 def _build_db_writer():
+    """Resolve a DB writer from Django settings."""
     config, db_writer = _load_django_settings()
     if db_writer is not None:
         return db_writer
@@ -44,24 +41,22 @@ def _build_db_writer():
 
 
 def _build_logger():
+    """Build the Django logger instance."""
     settings = _build_settings()
-    instance = Ocelogger(settings=settings, db_writer=_build_db_writer())
-    register_exit_hooks(
-        instance,
-        enable_signals=settings.enable_signals,
-        enable_atexit=settings.enable_atexit,
-    )
-    return instance
+    return build_logger(settings, db_writer=_build_db_writer())
 
 
 logger = LazyLogger(_build_logger)
 
 
-class DjangoMiddleware:
+class DjangoMiddleware:  # pylint: disable=too-few-public-methods
+    """Attach trace IDs from Django requests."""
     def __init__(self, get_response):
+        """Store the Django response handler."""
         self.get_response = get_response
 
     def __call__(self, request):
+        """Wrap a Django request to set the trace ID."""
         previous = get_trace_id()
         headers = getattr(request, "headers", None)
         environ = getattr(request, "META", None)

@@ -1,3 +1,5 @@
+"""Public package exports."""
+
 from .logger import logger
 from .core import Ocelogger
 from .settings import OcelogSettings

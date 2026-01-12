@@ -1,25 +1,14 @@
-import os
-import uuid
+"""Default logger for CLI and scripts."""
 
-from .core import Ocelogger
 from .lazy import LazyLogger
 from .settings import OcelogSettings
-from .lifecycle import register_exit_hooks
-from .context import set_trace_id, get_trace_id
+from .bootstrap import build_logger
 
 
 def _build_logger():
+    """Build the default logger lazily."""
     settings = OcelogSettings.from_env()
-    instance = Ocelogger(settings=settings)
-    if get_trace_id() is None:
-        trace_id = f"ocelog-{os.getpid()}-{uuid.uuid4().hex[:8]}"
-        set_trace_id(trace_id)
-    register_exit_hooks(
-        instance,
-        enable_signals=settings.enable_signals,
-        enable_atexit=settings.enable_atexit,
-    )
-    return instance
+    return build_logger(settings, init_trace_id=True)
 
 
 logger = LazyLogger(_build_logger)

@@ -1,23 +1,14 @@
-from ..core import Ocelogger
+"""Web defaults logger entrypoint."""
+
 from ..lazy import LazyLogger
-from ..lifecycle import register_exit_hooks
-from ..settings import OcelogSettings
+from ..bootstrap import build_logger
+from .common import build_web_settings
 
 
 def _build_logger():
-    settings = OcelogSettings.from_env_with_defaults(
-        name="ocelog.web",
-        flush_interval=0.5,
-        max_buffer=300,
-        enable_signals=False,
-    )
-    instance = Ocelogger(settings=settings)
-    register_exit_hooks(
-        instance,
-        enable_signals=settings.enable_signals,
-        enable_atexit=settings.enable_atexit,
-    )
-    return instance
+    """Build the web-default logger lazily."""
+    settings = build_web_settings()
+    return build_logger(settings)
 
 
 logger = LazyLogger(_build_logger)
